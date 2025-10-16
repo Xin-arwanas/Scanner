@@ -1,0 +1,72 @@
+{
+  "name": "mhy-scanner-electron",
+  "version": "1.0.0",
+  "description": "米哈游游戏扫码登录工具 - Electron版本",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3090 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:pack": "npm run build && electron-builder --dir",
+    "electron:dist": "npm run build && electron-builder --publish=never",
+    "setup": "node scripts/setup.js"
+  },
+  "keywords": [
+    "electron",
+    "vue3",
+    "vite",
+    "mihoyo",
+    "qr-scanner",
+    "live-stream",
+    "login"
+  ],
+  "author": "MHY Scanner Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.2",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "vite": "^5.0.10",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@sec-ant/zxing-wasm": "^2.2.0",
+    "axios": "^1.6.2",
+    "electron-store": "^8.1.0",
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4",
+    "qrcode-reader": "^1.0.4",
+    "sharp": "^0.34.4",
+    "vue": "^3.4.0",
+    "ws": "^8.14.2"
+  },
+  "build": {
+    "appId": "com.mhyscanner.electron",
+    "productName": "MHY Scanner",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    }
+  }
+}

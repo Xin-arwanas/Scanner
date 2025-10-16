@@ -2,6 +2,9 @@ import { ref, computed } from 'vue'
 import jsQR from 'jsqr'
 import { useSettingsStore } from '../stores/settings'
 
+// FFmpeg路径配置
+const FFMPEG_PATH = './ffmpeg/bin/ffmpeg.exe'
+
 // 直播流扫描功能
 export function useStreamMonitor() {
   const isScanningStream = ref(false)
@@ -357,7 +360,7 @@ export function useStreamMonitor() {
     // 优先使用 FLV + PNG（更稳出首帧）；若当前为 HLS 且提供了 altUrl（FLV），则切到 altUrl
     const preferUrl = (currentType === 'hls' && altUrl) ? altUrl : streamUrl
     console.log('[STREAM] 选择播放URL:', preferUrl)
-    const startRet = await window.electronAPI.streamPipeStart(preferUrl, headers, { fps: 2, scale: '480', codec: 'png', tlsInsecure: true,ffmpegPath: 'E:\\ffmpeg\\ffmpeg-8.0-essentials_build\\bin\\ffmpeg.exe' })
+    const startRet = await window.electronAPI.streamPipeStart(preferUrl, headers, { fps: 2, scale: '480', codec: 'png', tlsInsecure: true,ffmpegPath: FFMPEG_PATH })
     console.log('[STREAM] pipe started')
     if (!startRet || !startRet.success) {
       console.warn('[STREAM] 启动失败')
@@ -376,14 +379,14 @@ export function useStreamMonitor() {
         console.warn('[STREAM] 5秒内未收到帧，先尝试切换为 rawvideo 管道')
         try {
           await window.electronAPI.streamPipeStop()
-          const ret = await window.electronAPI.streamPipeStart(preferUrl, headers, { pipeFormat: 'raw', rawWidth: 640, rawHeight: 360, fps: 2, tlsInsecure: true,ffmpegPath: 'E:\\ffmpeg\\ffmpeg-8.0-essentials_build\\bin\\ffmpeg.exe' })
+          const ret = await window.electronAPI.streamPipeStart(preferUrl, headers, { pipeFormat: 'raw', rawWidth: 640, rawHeight: 360, fps: 2, tlsInsecure: true,ffmpegPath: FFMPEG_PATH })
           console.warn('[STREAM] 已切换为 rawvideo，重试拉流:', ret?.success)
         } catch (e) {
           console.warn('[STREAM] 切换 raw 失败，尝试备选流:', e)
           if (altUrl) {
             try {
               await window.electronAPI.streamPipeStop()
-              await window.electronAPI.streamPipeStart(altUrl, headers, { fps: 2, scale: '480', codec: 'png', tlsInsecure: true,ffmpegPath: 'E:\\ffmpeg\\ffmpeg-8.0-essentials_build\\bin\\ffmpeg.exe' })
+              await window.electronAPI.streamPipeStart(altUrl, headers, { fps: 2, scale: '480', codec: 'png', tlsInsecure: true,ffmpegPath: FFMPEG_PATH })
               console.warn('[STREAM] 已切换至备选流并使用 png:', altUrl)
         } catch (e2) {
           console.warn('[STREAM] 备选流也失败:', e2)

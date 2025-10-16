@@ -70,3 +70,7 @@ tmp/
 temp/
 
 MHY_Scanner/
+
+# FFmpeg binaries (exclude from version control)
+ffmpeg/bin/*.exe
+ffmpeg/bin/*.dll

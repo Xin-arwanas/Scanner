@@ -82,7 +82,7 @@
             >
             <option value="douyin">抖音</option>
               <option value="bilibili">B站</option>
-              <option value="huya">虎牙</option>
+              <!-- <option value="huya">虎牙</option> -->
             </select>
           </div>
           <div class="form-group">

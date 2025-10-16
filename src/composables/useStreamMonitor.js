@@ -278,6 +278,12 @@ export function useStreamMonitor() {
           // console.log(`[统计] 检测失败 ${detectionStats.value.failedDetections}/${detectionStats.value.totalAttempts}`)
           return
         }
+        // else{
+        //   const a = 1
+        //   if (a) {
+        //     throw new Error('成功检测到二维码')
+        //   }
+        // }
         
         detectionStats.value.successfulDetections++
         console.log(`[统计] 检测成功 ${detectionStats.value.successfulDetections}/${detectionStats.value.totalAttempts}`)

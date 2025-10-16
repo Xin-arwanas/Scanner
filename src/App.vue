@@ -222,6 +222,7 @@ const startStreamScan = async (platform, roomId) => {
         const loginResult = await performAutoLogin(qrInfo, account)
         if (loginResult.success) {
           addLog(`自动确认登录成功`, 'success')
+          alert('登录成功')
           // 登录成功，可以在这里处理后续逻辑
         } else {
           addLog(`自动确认登录失败: ${loginResult.error}`, 'error')

@@ -309,9 +309,9 @@ onUnmounted(() => {
   overflow: auto;
 }
 
-@media (max-width: 1024px) {
+/* @media (max-width: 1024px) {
   .main-content {
     flex-direction: column;
   }
-}
+} */
 </style>

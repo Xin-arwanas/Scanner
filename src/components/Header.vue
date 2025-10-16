@@ -54,7 +54,7 @@ defineEmits(['add-account'])
   gap: 0.5rem;
 }
 
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
   .header {
     padding: 1rem;
   }
@@ -67,5 +67,5 @@ defineEmits(['add-account'])
   .app-title {
     font-size: 1.2rem;
   }
-}
+} */
 </style>

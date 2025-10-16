@@ -16,6 +16,7 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -73,8 +74,8 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow()
 
-  // 设置应用菜单
-  createMenu()
+  // 隐藏应用菜单
+  try { Menu.setApplicationMenu(null) } catch (_) {}
 
   // 注册主进程二维码识别 IPC（worker 线程）
   try {

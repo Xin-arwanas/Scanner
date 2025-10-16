@@ -212,7 +212,7 @@ const cancelEditNotes = () => {
 
 <style scoped>
 .account-panel {
-  width: 600px;
+  width: 50%;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 12px;
@@ -347,10 +347,10 @@ const cancelEditNotes = () => {
   background: linear-gradient(45deg, #fd79a8, #e84393);
 }
 
-@media (max-width: 1024px) {
+/* @media (max-width: 1024px) {
   .account-panel {
     width: 100%;
     height: 300px;
   }
-}
+} */
 </style>

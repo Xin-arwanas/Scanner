@@ -14,7 +14,6 @@
 
 - `ffmpeg.exe` - 主要的FFmpeg可执行文件
 - `ffprobe.exe` - FFprobe工具
-- 所有 `.dll` 文件（如 `avcodec-*.dll`, `avformat-*.dll`, `avutil-*.dll` 等）
 
 ## 目录结构
 
@@ -23,14 +22,12 @@ Scanner/
 ├── ffmpeg/
 │   └── bin/
 │       ├── ffmpeg.exe
-│       ├── ffprobe.exe
-│       └── *.dll
+│       └── ffprobe.exe
 ```
 
 ## 注意事项
 
 - FFmpeg的二进制文件已被添加到 `.gitignore` 中，不会被提交到版本控制
-- 确保所有DLL文件都在同一个目录中，否则FFmpeg可能无法正常运行
 - 项目现在使用相对路径 `./ffmpeg/bin/ffmpeg.exe` 来调用FFmpeg
 
 ## 验证安装

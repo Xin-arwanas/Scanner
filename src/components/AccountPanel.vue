@@ -243,7 +243,6 @@ const cancelEditNotes = () => {
 
 .account-list {
   flex: 1;
-  overflow: auto;
 }
 
 .empty-state {

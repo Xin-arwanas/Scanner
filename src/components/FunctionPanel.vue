@@ -289,6 +289,9 @@ onMounted(() => {
 .function-panel .card{
   margin-bottom: 1rem;
 }
+.function-panel .card:last-child{
+  margin-bottom: 0;
+}
 
 .stream-controls {
   margin-bottom: 1rem;

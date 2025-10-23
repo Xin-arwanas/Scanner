@@ -59,8 +59,10 @@ export function useStreamMonitor() {
    * @param {Function} onAutoLogin - 自动登录回调
    */
   const startStreamScan = async (platform, roomId, account, onQRDetected, onLoginConfirm, onAutoLogin) => {
+    // 如果已经在扫描，先停止之前的扫描
     if (isScanningStream.value) {
-      return
+      console.log('检测到正在扫描，先停止之前的扫描...')
+      await stopStreamScan()
     }
 
     // 重置检测统计
@@ -149,17 +151,18 @@ export function useStreamMonitor() {
     isScanningStream.value = true
     isProcessingQR.value = false // 重置处理标志位
     lastProcessedTicket.value = '' // 重置最后处理的ticket
-    console.log('开始直播流扫描...')
+    console.log('开始直播流扫描...', { platform, roomId })
 
     // 获取直播流链接
     try {
       // 抖音：先用隐藏窗口自动获取 Cookie，再请求真实流地址
       if (platform && platform.toLowerCase() === 'douyin') {
+        console.log('开始为抖音直播间获取Cookie:', roomId)
         const hdr = await window.electronAPI.douyinHeadersAuto(roomId)
         if (hdr && hdr.success && hdr.headers) {
-          console.log('已自动获取抖音Cookie')
+          console.log('已自动获取抖音Cookie，headers:', hdr.headers)
         } else {
-          console.warn('自动获取抖音Cookie失败，将尝试直接请求')
+          console.warn('自动获取抖音Cookie失败，将尝试直接请求:', hdr?.error || '未知错误')
         }
       }
 
@@ -237,16 +240,23 @@ export function useStreamMonitor() {
         detectionStats.value.totalAttempts++
         if (window.electronAPI && window.electronAPI.detectQRFromBuffer) {
           try {
+            console.log('[STREAM] 调用主进程识别，数据长度:', payload.data.length, 'codec:', payload.codec, '尺寸:', payload.width, 'x', payload.height)
             const detectRet = await window.electronAPI.detectQRFromBuffer(
               payload.data,
               { codec: payload.codec || 'png', width: payload.width, height: payload.height }
             )
+            console.log('[STREAM] 主进程识别结果:', detectRet)
             if (detectRet && detectRet.success && detectRet.text && detectRet.text.length > 0) {
               qrResult = detectRet.text
+              console.log('[STREAM] 主进程识别成功:', qrResult)
+            } else {
+              console.log('[STREAM] 主进程识别失败或无结果:', detectRet)
             }
           } catch (e) {
-            // console.log('[STREAM] 主进程识别失败，将回退到渲染端:', e?.message || e)
+            console.log('[STREAM] 主进程识别异常，将回退到渲染端:', e?.message || e)
           }
+        } else {
+          console.log('[STREAM] detectQRFromBuffer API 不可用')
         }
         // 回退：需要时再生成 Base64 并走渲染端 Data URL + jsQR
         // if (!qrResult) {
@@ -260,6 +270,7 @@ export function useStreamMonitor() {
         //       return
         //     }
         //     const dataUrl = `data:image/${payload.codec || 'png'};base64,${base64}`
+        //     // console.log(dataUrl)
         //     if (!dataUrl.startsWith('data:image/')) {
         //       console.log('[STREAM] 无效的图片数据URL')
         //       isProcessingQR.value = false

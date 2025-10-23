@@ -1,6 +1,6 @@
 {
   "name": "mhy-scanner-electron",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "米哈游游戏扫码登录工具 - Electron版本",
   "main": "electron/main.js",
   "scripts": {

@@ -1180,6 +1180,16 @@ async function getDouyinHeadersByHiddenWindow(roomId, event) {
 }
 
 ipcMain.handle('douyin-headers-auto', async (event, roomId) => {
+  console.log('[DOUYIN] 开始自动获取Cookie，直播间ID:', roomId)
+  
+  // 清理之前的抖音数据，确保使用新的直播间ID
+  douyinSessionHeaders = null
+  capturedDouyinData = {
+    apiUrl: null,
+    cookies: null,
+    headers: null
+  }
+  
   const ret = await getDouyinHeadersByHiddenWindow(roomId, event)
   if (ret && ret.success && ret.headers) {
     douyinSessionHeaders = ret.headers

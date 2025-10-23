@@ -126,7 +126,7 @@ const confirmLogin = async () => {
   status.value = 'confirming'
   
   try {
-    console.log('开始确认登录流程:', { qrInfo: props.qrInfo, account: props.account })
+    // console.log('开始确认登录流程:', { qrInfo: props.qrInfo, account: props.account })
     
     // 使用useQRScanner的confirmLogin函数，确保与自动登录逻辑一致
     const confirmResult = await qrConfirmLogin(
@@ -140,7 +140,7 @@ const confirmLogin = async () => {
       throw new Error(confirmResult.error)
     }
     
-    console.log('确认登录成功')
+    // console.log('确认登录成功')
     
     // 获取SToken
     const stokenResult = await window.electronAPI.mihoyoGetStokenByGameToken(

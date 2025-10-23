@@ -2,28 +2,39 @@
   <div id="app">
     <Header @add-account="showAddAccountModal = true" />
     <main class="main-content">
-      <AccountPanel 
-        :accounts="accounts"
-        :selected-account="selectedAccount"
-        @add-account="showAddAccountModal = true"
-        @select-account="selectAccount"
-        @delete-account="deleteAccount"
-        @set-default="setDefaultAccount"
-        @update-account="updateAccount"
-      />
-      <FunctionPanel
-        :selected-account="selectedAccount"
-        :settings="settings"
-        :is-scanning-screen="isScanningScreen"
-        :is-scanning-stream="isScanningStream"
-        :detection-stats="detectionStats"
-        @start-screen-scan="startScreenScan"
-        @stop-screen-scan="stopScreenScan"
-        @start-stream-scan="startStreamScan"
-        @stop-stream-scan="stopStreamScan"
-        @update-settings="updateSettings"
-        @add-log="addLog"
-      />
+      <section class="left-column">
+        <AccountPanel 
+          :accounts="accounts"
+          :selected-account="selectedAccount"
+          @add-account="showAddAccountModal = true"
+          @select-account="selectAccount"
+          @delete-account="deleteAccount"
+          @set-default="setDefaultAccount"
+          @update-account="updateAccount"
+        />
+        <div class="left-log">
+          <LogPanel 
+            :enable-console-intercept="true"
+            :enable-worker-logs="true"
+            :max-logs="500"
+          />
+        </div>
+      </section>
+      <section class="right-column">
+        <FunctionPanel
+          :selected-account="selectedAccount"
+          :settings="settings"
+          :is-scanning-screen="isScanningScreen"
+          :is-scanning-stream="isScanningStream"
+          :detection-stats="detectionStats"
+          @start-screen-scan="startScreenScan"
+          @stop-screen-scan="stopScreenScan"
+          @start-stream-scan="startStreamScan"
+          @stop-stream-scan="stopStreamScan"
+          @update-settings="updateSettings"
+          @add-log="addLog"
+        />
+      </section>
     </main>
     
     <AddAccountModal
@@ -54,6 +65,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import Header from './components/Header.vue'
 import AccountPanel from './components/AccountPanel.vue'
 import FunctionPanel from './components/FunctionPanel.vue'
+import LogPanel from './components/LogPanel.vue'
 import AddAccountModal from './components/AddAccountModal.vue'
 import LoginConfirmModal from './components/LoginConfirmModal.vue'
 import QRTestModal from './components/QRTestModal.vue'
@@ -307,6 +319,30 @@ onUnmounted(() => {
   margin: 0 auto;
   width: 100%;
   overflow: auto;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+  gap: 1rem;
+}
+
+.account-panel{
+  height: 50%;
+}
+
+.left-log {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  flex:1;
+  min-height: 0;
+}
+
+.right-column {
+  flex: 1;
+  min-width: 0;
 }
 
 /* @media (max-width: 1024px) {

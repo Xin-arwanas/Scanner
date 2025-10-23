@@ -1,6 +1,6 @@
 {
   "name": "mhy-scanner-electron",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "米哈游游戏扫码登录工具 - Electron版本",
   "main": "electron/main.js",
   "scripts": {
@@ -34,7 +34,6 @@
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@sec-ant/zxing-wasm": "^2.2.0",
     "axios": "^1.6.2",
     "electron-store": "^8.1.0",
     "jsqr": "^1.4.0",
@@ -42,7 +41,8 @@
     "qrcode-reader": "^1.0.4",
     "sharp": "^0.34.4",
     "vue": "^3.4.0",
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "zxing-wasm": "^2.2.2"
   },
   "build": {
     "appId": "com.mhyscanner.electron",

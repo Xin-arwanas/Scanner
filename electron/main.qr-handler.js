@@ -1,5 +1,5 @@
 // 主进程：注册识别二维码的 IPC 处理，并把重活放到 worker_threads
-const { ipcMain } = require('electron')
+const { ipcMain, BrowserWindow } = require('electron')
 const { Worker, isMainThread } = require('worker_threads')
 const path = require('path')
 
@@ -16,6 +16,16 @@ function ensureWorker() {
     if (msg && msg.type === 'ready') {
       workerReady = true
       console.log('[QR-Worker] Worker已就绪')
+    } else if (msg && msg.type === 'log') {
+      // 转发Worker日志到渲染进程
+      const mainWindow = BrowserWindow.getAllWindows()[0]
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('worker-log', {
+          level: msg.level,
+          message: msg.message,
+          timestamp: msg.timestamp
+        })
+      }
     }
   })
   qrWorker.on('error', (err) => {

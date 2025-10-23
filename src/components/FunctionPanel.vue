@@ -104,6 +104,31 @@
           <span class="icon">📺</span>
           {{ isScanningStream ? '停止监视' : '开始监视直播间' }}
         </button>
+        
+        <!-- 直播流检测统计信息 -->
+        <!-- <div v-if="isScanningStream && detectionStats" class="detection-stats">
+          <h4>直播流检测统计</h4>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">总尝试次数:</span>
+              <span class="stat-value">{{ detectionStats.totalAttempts }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">成功检测:</span>
+              <span class="stat-value success">{{ detectionStats.successfulDetections }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">失败检测:</span>
+              <span class="stat-value error">{{ detectionStats.failedDetections }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">成功率:</span>
+              <span class="stat-value" :class="getSuccessRateClass()">
+                {{ getSuccessRate() }}%
+              </span>
+            </div>
+          </div>
+        </div> -->
       </div>
     </div>
 
@@ -126,31 +151,12 @@
         </div>
       </div>
     </div>
-
-    <!-- 日志显示 -->
-    <!-- <div class="card">
-      <div class="card-header">
-        <h3>运行日志</h3>
-        <button class="btn btn-small" @click="clearLogs">清空</button>
-      </div>
-      <div class="card-content">
-        <div class="log-container" ref="logContainer">
-          <div 
-            v-for="(log, index) in logs" 
-            :key="index"
-            class="log-entry"
-            :class="log.type"
-          >
-            [{{ formatTime(log.timestamp) }}] {{ log.message }}
-          </div>
-        </div>
-      </div>
-    </div> -->
   </section>
 </template>
 
 <script setup>
 import { ref, reactive, watch, nextTick, onMounted } from 'vue'
+import LogPanel from './LogPanel.vue'
 
 // 定义props
 const props = defineProps({
@@ -191,8 +197,7 @@ const emit = defineEmits([
 ])
 
 // 响应式数据
-const logs = ref([])
-const logContainer = ref(null)
+const logPanel = ref(null)
 const localSettings = reactive({ ...props.settings })
 const streamConfig = reactive({
   platform: 'douyin',
@@ -220,34 +225,6 @@ const updateSettings = () => {
   emit('update-settings', { ...localSettings })
 }
 
-const clearLogs = () => {
-  logs.value = []
-}
-
-const addLog = (message, type = 'info') => {
-  logs.value.push({
-    message,
-    type,
-    timestamp: new Date()
-  })
-  
-  // 自动滚动到底部
-  nextTick(() => {
-    if (logContainer.value) {
-      logContainer.value.scrollTop = logContainer.value.scrollHeight
-    }
-  })
-  
-  // 限制日志数量
-  if (logs.value.length > 100) {
-    logs.value = logs.value.slice(-100)
-  }
-}
-
-const formatTime = (timestamp) => {
-  return timestamp.toLocaleTimeString()
-}
-
 // 计算成功率
 const getSuccessRate = () => {
   if (props.detectionStats.totalAttempts === 0) return 0
@@ -267,16 +244,6 @@ watch(() => props.settings, (newSettings) => {
   Object.assign(localSettings, newSettings)
 }, { deep: true })
 
-// 监听日志事件
-watch(() => props.logs, (newLogs) => {
-  if (newLogs && newLogs.length > 0) {
-    newLogs.forEach(log => addLog(log.message, log.type))
-  }
-}, { deep: true })
-
-onMounted(() => {
-  addLog('系统已启动，等待操作...', 'info')
-})
 </script>
 
 <style scoped>
@@ -301,38 +268,6 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-.log-container {
-  background: #2c3e50;
-  color: #ecf0f1;
-  padding: 1rem;
-  border-radius: 6px;
-  height: 200px;
-  overflow-y: auto;
-  font-family: 'Courier New', monospace;
-  font-size: 0.8rem;
-  line-height: 1.4;
-}
-
-.log-entry {
-  margin-bottom: 0.5rem;
-  padding: 0.25rem 0;
-}
-
-.log-entry.info {
-  color: #3498db;
-}
-
-.log-entry.success {
-  color: #2ecc71;
-}
-
-.log-entry.warning {
-  color: #f39c12;
-}
-
-.log-entry.error {
-  color: #e74c3c;
-}
 
 /* 检测统计样式 */
 .detection-stats {

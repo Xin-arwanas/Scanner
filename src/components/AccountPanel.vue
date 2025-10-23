@@ -212,7 +212,6 @@ const cancelEditNotes = () => {
 
 <style scoped>
 .account-panel {
-  width: 50%;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 12px;
@@ -243,6 +242,12 @@ const cancelEditNotes = () => {
 
 .account-list {
   flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.account-list .table thead tr th{
+  background-color: #F7F8FD;
 }
 
 .empty-state {

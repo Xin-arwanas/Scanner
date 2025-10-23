@@ -4,14 +4,111 @@ const { parentPort } = require('worker_threads')
 let sharp = null
 let jsQR = null
 let zxing = null
-try { sharp = require('sharp') } catch (_) { sharp = null }
-try { jsQR = require('jsqr') } catch (_) { jsQR = null }
-try { zxing = require('@sec-ant/zxing-wasm') } catch (_) { zxing = null }
+
+try { 
+  sharp = require('sharp') 
+  console.log('[QR-Worker] Sharp加载成功')
+} catch (e) { 
+  sharp = null 
+  console.log('[QR-Worker] Sharp加载失败:', e.message)
+}
+
+try { 
+  jsQR = require('jsqr') 
+  console.log('[QR-Worker] jsQR加载成功')
+} catch (e) { 
+  jsQR = null 
+  console.log('[QR-Worker] jsQR加载失败:', e.message)
+}
+
+try { 
+  // 使用新的 zxing-wasm 包
+  zxing = require('zxing-wasm') 
+  console.log('[QR-Worker] ZXing模块加载成功，类型:', typeof zxing)
+  console.log('[QR-Worker] ZXing可用方法:', Object.keys(zxing || {}))
+} catch (e) { 
+  zxing = null 
+  console.log('[QR-Worker] ZXing加载失败:', e.message)
+}
+
+// 自定义日志函数，将日志发送到主进程
+function logToMain(level, ...args) {
+  const message = args.map(arg => {
+    if (typeof arg === 'object' && arg !== null) {
+      try {
+        return JSON.stringify(arg, null, 2)
+      } catch (e) {
+        return String(arg)
+      }
+    }
+    return String(arg)
+  }).join(' ')
+  
+  parentPort.postMessage({ 
+    type: 'log', 
+    level, 
+    message: `${message}`,
+    timestamp: new Date().toISOString()
+  })
+}
+
+// 重写console方法
+const originalConsole = {
+  log: console.log,
+  warn: console.warn,
+  error: console.error,
+  info: console.info
+}
+
+console.log = (...args) => {
+  originalConsole.log.apply(console, args)
+  logToMain('info', ...args)
+}
+
+console.warn = (...args) => {
+  originalConsole.warn.apply(console, args)
+  logToMain('warning', ...args)
+}
+
+console.error = (...args) => {
+  originalConsole.error.apply(console, args)
+  logToMain('error', ...args)
+}
+
+console.info = (...args) => {
+  originalConsole.info.apply(console, args)
+  logToMain('info', ...args)
+}
 
 console.log('[QR-Worker] Worker启动，依赖检查:')
 console.log('  - Sharp:', !!sharp)
 console.log('  - jsQR:', !!jsQR)
 console.log('  - ZXing:', !!zxing)
+
+// 详细检查ZXing
+if (zxing) {
+  console.log('[QR-Worker] ZXing详细检查:')
+  console.log('  - 类型:', typeof zxing)
+  console.log('  - 是否为对象:', zxing && typeof zxing === 'object')
+  console.log('  - 可用属性:', Object.keys(zxing || {}))
+  console.log('  - 有readBarcodeFromImageBuffer:', typeof zxing.readBarcodeFromImageBuffer === 'function')
+  console.log('  - 有ZXing构造函数:', typeof zxing.ZXing === 'function')
+  console.log('  - 有readBarcode:', typeof zxing.readBarcode === 'function')
+  
+  // 尝试检查ZXing的版本信息
+  if (zxing.version) {
+    console.log('  - 版本:', zxing.version)
+  }
+  if (zxing.VERSION) {
+    console.log('  - VERSION:', zxing.VERSION)
+  }
+} else {
+  console.log('[QR-Worker] ZXing未加载，可能的原因:')
+  console.log('  - 模块未安装')
+  console.log('  - 模块路径问题')
+  console.log('  - Worker线程限制')
+}
+
 parentPort.postMessage({ type: 'ready' })
 
 async function decodeWithSharp(buffer) {
@@ -189,31 +286,75 @@ function detectWithJsqr(rgba, width, height) {
 }
 
 async function detectWithZxing(buffer) {
-  if (!zxing) throw new Error('zxing-not-available')
-  // 适配 @sec-ant/zxing-wasm 的常见 API 形态
-  try {
-    // 情形1：提供 readBarcodeFromImageBuffer
-    if (typeof zxing.readBarcodeFromImageBuffer === 'function') {
-      const out = await zxing.readBarcodeFromImageBuffer(buffer)
-      if (out && out.text) return { success: true, text: out.text }
-      return { success: false }
-    }
-  } catch (e) {
-    // 继续尝试其他形态
+  if (!zxing) {
+    console.log('[QR-Worker] ZXing未加载，无法使用')
+    throw new Error('zxing-not-available')
   }
+  
+  // console.log('[QR-Worker] ZXing对象详情:', {
+  //   type: typeof zxing,
+  //   isObject: zxing && typeof zxing === 'object',
+  //   keys: zxing ? Object.keys(zxing) : [],
+  //   hasReadBarcodes: typeof zxing.readBarcodes === 'function',
+  //   hasReadBarcodesFromImageData: typeof zxing.readBarcodesFromImageData === 'function',
+  //   hasReadBarcodesFromImageFile: typeof zxing.readBarcodesFromImageFile === 'function'
+  // })
+  
+  // 使用新的 zxing-wasm API
   try {
-    // 情形2：需要先创建实例
-    if (typeof zxing.ZXing === 'function') {
-      const inst = await zxing.ZXing()
-      if (inst && typeof inst.readBarcodeFromImageBuffer === 'function') {
-        const out = await inst.readBarcodeFromImageBuffer(buffer)
-        if (out && out.text) return { success: true, text: out.text }
-        return { success: false }
+    // 情形1：使用 readBarcodesFromImageData (推荐)
+    if (typeof zxing.readBarcodesFromImageData === 'function') {
+      console.log('[QR-Worker] 尝试ZXing readBarcodesFromImageData方式')
+      
+      // 需要将Buffer转换为ImageData格式
+      // 先尝试用Sharp解码图像获取RGBA数据
+      if (sharp) {
+        try {
+          const { data, info } = await sharp(buffer)
+            .ensureAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true })
+          
+          const imageData = {
+            data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength),
+            width: info.width,
+            height: info.height
+          }
+          
+          console.log('[QR-Worker] 图像数据准备完成，尺寸:', info.width, 'x', info.height)
+          const results = await zxing.readBarcodesFromImageData(imageData)
+          // console.log('[QR-Worker] ZXing readBarcodesFromImageData结果:', results)
+          
+          if (results && results.length > 0 && results[0].text) {
+            return { success: true, text: results[0].text }
+          }
+          return { success: false }
+        } catch (sharpError) {
+          console.log('[QR-Worker] Sharp解码失败，尝试其他方式:', sharpError.message)
+        }
       }
     }
   } catch (e) {
-    // 忽略并继续回退
+    console.log('[QR-Worker] ZXing readBarcodesFromImageData失败:', e.message)
   }
+  
+  try {
+    // 情形2：使用 readBarcodes (直接处理Buffer)
+    if (typeof zxing.readBarcodes === 'function') {
+      console.log('[QR-Worker] 尝试ZXing readBarcodes方式')
+      const results = await zxing.readBarcodes(buffer)
+      console.log('[QR-Worker] ZXing readBarcodes结果:', results)
+      
+      if (results && results.length > 0 && results[0].text) {
+        return { success: true, text: results[0].text }
+      }
+      return { success: false }
+    }
+  } catch (e) {
+    console.log('[QR-Worker] ZXing readBarcodes失败:', e.message)
+  }
+  
+  console.log('[QR-Worker] ZXing所有尝试都失败，接口不支持')
   throw new Error('zxing-interface-not-supported')
 }
 
@@ -231,55 +372,58 @@ parentPort.on('message', async (msg) => {
         console.log('[QR-Worker] ZXing识别结果:', zres)
         if (zres && zres.success) {
           return parentPort.postMessage({ type: 'detect-result', result: zres })
+        }else{
+          return parentPort.postMessage({ type: 'detect-result', result: { success: false, error: zres?.error || '未识别到二维码' } })
         }
       } catch (e) {
         console.log('[QR-Worker] ZXing识别失败:', e.message)
       }
     } else {
       console.log('[QR-Worker] ZXing不可用')
+      parentPort.postMessage({ type: 'detect-result', result: { success: false, error: 'zxing-not-available' } })
     }
 
     // 回退：使用 sharp 解码 + jsQR
-    console.log('[QR-Worker] 回退到Sharp+jsQR识别')
-    const { rgba, width, height } = await decodeWithSharp(input)
-    console.log('[QR-Worker] Sharp解码完成，尺寸:', width, 'x', height, 'RGBA长度:', rgba.length)
+  //   console.log('[QR-Worker] 回退到Sharp+jsQR识别')
+  //   const { rgba, width, height } = await decodeWithSharp(input)
+  //   console.log('[QR-Worker] Sharp解码完成，尺寸:', width, 'x', height, 'RGBA长度:', rgba.length)
     
-    // 使用Sharp解码后的实际尺寸，而不是传递的元信息尺寸
-    const jres = detectWithJsqr(rgba, width, height)
-    console.log('[QR-Worker] jsQR识别结果:', jres)
+  //   // 使用Sharp解码后的实际尺寸，而不是传递的元信息尺寸
+  //   const jres = detectWithJsqr(rgba, width, height)
+  //   console.log('[QR-Worker] jsQR识别结果:', jres)
     
-    // 如果原始尺寸识别失败，尝试不同尺寸
-    if (!jres.success) {
-      console.log('[QR-Worker] 原始尺寸识别失败，尝试不同尺寸...')
-      const targetSizes = [
-        { width: 320, height: 240 },   // 0.5x
-        { width: 480, height: 360 },   // 0.75x  
-        { width: 640, height: 480 },   // 原始尺寸
-        { width: 800, height: 600 },   // 1.25x
-        { width: 1024, height: 768 },  // 1.5x
-        { width: 1280, height: 960 }   // 2x
-      ]
+  //   // 如果原始尺寸识别失败，尝试不同尺寸
+  //   if (!jres.success) {
+  //     console.log('[QR-Worker] 原始尺寸识别失败，尝试不同尺寸...')
+  //     const targetSizes = [
+  //       { width: 320, height: 240 },   // 0.5x
+  //       { width: 480, height: 360 },   // 0.75x  
+  //       { width: 640, height: 480 },   // 原始尺寸
+  //       { width: 800, height: 600 },   // 1.25x
+  //       { width: 1024, height: 768 },  // 1.5x
+  //       { width: 1280, height: 960 }   // 2x
+  //     ]
       
-      for (const size of targetSizes) {
-        try {
-          console.log(`[QR-Worker] 尝试Sharp缩放尺寸: ${size.width}x${size.height}`)
-          const { rgba: scaledRgba, width: newWidth, height: newHeight } = await decodeWithSharpResized(input, size.width, size.height)
+  //     for (const size of targetSizes) {
+  //       try {
+  //         console.log(`[QR-Worker] 尝试Sharp缩放尺寸: ${size.width}x${size.height}`)
+  //         const { rgba: scaledRgba, width: newWidth, height: newHeight } = await decodeWithSharpResized(input, size.width, size.height)
           
-          const scaledRes = detectWithJsqr(scaledRgba, newWidth, newHeight)
-          console.log(`[QR-Worker] Sharp缩放尺寸 ${size.width}x${size.height} 识别结果:`, scaledRes)
+  //         const scaledRes = detectWithJsqr(scaledRgba, newWidth, newHeight)
+  //         console.log(`[QR-Worker] Sharp缩放尺寸 ${size.width}x${size.height} 识别结果:`, scaledRes)
           
-          if (scaledRes.success) {
-            console.log('[QR-Worker] Sharp缩放图像识别成功！')
-            parentPort.postMessage({ type: 'detect-result', result: scaledRes })
-            return
-          }
-        } catch (e) {
-          console.log(`[QR-Worker] Sharp缩放尺寸 ${size.width}x${size.height} 失败:`, e.message)
-        }
-      }
-    }
+  //         if (scaledRes.success) {
+  //           console.log('[QR-Worker] Sharp缩放图像识别成功！')
+  //           parentPort.postMessage({ type: 'detect-result', result: scaledRes })
+  //           return
+  //         }
+  //       } catch (e) {
+  //         console.log(`[QR-Worker] Sharp缩放尺寸 ${size.width}x${size.height} 失败:`, e.message)
+  //       }
+  //     }
+  //   }
     
-    parentPort.postMessage({ type: 'detect-result', result: jres })
+  //   parentPort.postMessage({ type: 'detect-result', result: jres })
   } catch (e) {
     console.log('[QR-Worker] 识别异常:', e.message)
     parentPort.postMessage({ type: 'detect-result', result: { success: false, error: e?.message || String(e) } })

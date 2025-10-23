@@ -171,7 +171,7 @@ export function useStreamMonitor() {
         throw new Error(streamData.error || '获取直播流链接失败')
       }
       
-      console.log('获取直播流链接成功:', streamData.url, 'type=', streamData.type, 'alt=', !!streamData.altUrl)
+      console.log('获取直播流链接成功:', streamData.url)
       
       // 开始扫描直播流
       startStreamFrameCapture({
@@ -240,7 +240,7 @@ export function useStreamMonitor() {
         detectionStats.value.totalAttempts++
         if (window.electronAPI && window.electronAPI.detectQRFromBuffer) {
           try {
-            console.log('[STREAM] 调用主进程识别，数据长度:', payload.data.length, 'codec:', payload.codec, '尺寸:', payload.width, 'x', payload.height)
+            console.log('[STREAM] 获取到数据流，数据长度:', payload.data.length, 'codec:', payload.codec, '尺寸:', payload.width, 'x', payload.height)
             const detectRet = await window.electronAPI.detectQRFromBuffer(
               payload.data,
               { codec: payload.codec || 'png', width: payload.width, height: payload.height }
@@ -297,7 +297,7 @@ export function useStreamMonitor() {
         // }
         
         detectionStats.value.successfulDetections++
-        console.log(`[统计] 检测成功 ${detectionStats.value.successfulDetections}/${detectionStats.value.totalAttempts}`)
+        // console.log(`[统计] 检测成功 ${detectionStats.value.successfulDetections}/${detectionStats.value.totalAttempts}`)
         onQRDetected && onQRDetected(qrResult)
 
         if (qrResult.length < 85) return
@@ -376,7 +376,7 @@ export function useStreamMonitor() {
     // 监听注册完成后再启动主进程持久拉流
     // 优先使用 FLV + PNG（更稳出首帧）；若当前为 HLS 且提供了 altUrl（FLV），则切到 altUrl
     const preferUrl = (currentType === 'hls' && altUrl) ? altUrl : streamUrl
-    console.log('[STREAM] 选择播放URL:', preferUrl)
+    // console.log('[STREAM] 选择播放URL:', preferUrl)
     const startRet = await window.electronAPI.streamPipeStart(preferUrl, headers, { fps: 2, scale: '480', codec: 'png', tlsInsecure: true,ffmpegPath: FFMPEG_PATH })
     console.log('[STREAM] pipe started')
     if (!startRet || !startRet.success) {

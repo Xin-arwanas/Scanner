@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onStreamFrame: (callback) => ipcRenderer.on('stream-frame', (_e, payload) => callback(payload)),
   onStreamFrameEnd: (callback) => ipcRenderer.on('stream-frame-end', (_e, payload) => callback(payload)),
   onStreamLog: (callback) => ipcRenderer.on('stream-log', (_e, payload) => callback(payload)),
+  onWorkerLog: (callback) => ipcRenderer.on('worker-log', (_e, payload) => callback(payload)),
   streamFrameDone: () => ipcRenderer.send('stream-frame-done'),
   // 保存调试图片
   saveDebugImage: (dataUrl, filename) => ipcRenderer.invoke('save-debug-image', dataUrl, filename),

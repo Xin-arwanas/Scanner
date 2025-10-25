@@ -75,6 +75,20 @@ function registerQRHandler() {
         const onMessage = (msg) => {
           if (!msg || msg.type !== 'detect-result') return
           qrWorker.off('message', onMessage)
+          
+          // 输出处理时间信息
+          if (msg.result && msg.result.processingTime) {
+            const { processingTime } = msg.result
+            console.log('[detect-qr] 处理时间统计:', processingTime)
+            if (processingTime.sharpDecode) {
+              console.log(`[detect-qr] Sharp解码: ${processingTime.sharpDecode}ms`)
+            }
+            if (processingTime.zxingDetect) {
+              console.log(`[detect-qr] ZXing识别: ${processingTime.zxingDetect}ms`)
+            }
+            console.log(`[detect-qr] 总耗时: ${processingTime.total}ms`)
+          }
+          
           console.log('[detect-qr] Worker返回结果:', msg.result)
           resolve(msg.result)
         }

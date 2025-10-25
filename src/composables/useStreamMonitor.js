@@ -245,7 +245,7 @@ export function useStreamMonitor() {
               payload.data,
               { codec: payload.codec || 'png', width: payload.width, height: payload.height }
             )
-            console.log('[STREAM] 主进程识别结果:', detectRet)
+            // console.log('[STREAM] 主进程识别结果:', detectRet)
             if (detectRet && detectRet.success && detectRet.text && detectRet.text.length > 0) {
               qrResult = detectRet.text
               console.log('[STREAM] 主进程识别成功:', qrResult)
@@ -359,14 +359,16 @@ export function useStreamMonitor() {
         })
       }
       if (window.electronAPI.onStreamFrameEnd) {
-        window.electronAPI.onStreamFrameEnd(() => {
+        window.electronAPI.onStreamFrameEnd((payload) => {
           // 拉流结束
+          console.log(payload)
         })
       }
       // 静默 FFmpeg 逐行日志，仅用于保活时间刷新
       if (window.electronAPI.onStreamLog) {
-        window.electronAPI.onStreamLog(() => {
+        window.electronAPI.onStreamLog((payload) => {
           firstFrameTs = Date.now()
+          console.log(payload)
         })
       }
     } catch (e) {

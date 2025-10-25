@@ -53,8 +53,16 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "ffmpeg/**/*",
       "node_modules/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "ffmpeg",
+        "to": "ffmpeg",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": "nsis",

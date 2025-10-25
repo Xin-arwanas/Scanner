@@ -303,7 +303,16 @@ ipcMain.handle('stream-pipe-start', async (event, streamUrl, headers, options = 
   const wcId = event.sender.id
   // 若已有，先停止
   if (streamPipes.has(wcId)) {
-    try { const prev = streamPipes.get(wcId); if (prev && prev.proc) prev.proc.kill('SIGKILL') } catch (_) {}
+    try { 
+      event.sender.send('stream-log', `[清理] 停止之前的流管道进程`) 
+      const prev = streamPipes.get(wcId)
+      if (prev && prev.proc) {
+        prev.proc.kill('SIGKILL')
+        event.sender.send('stream-log', `[清理] 已终止之前的FFmpeg进程`)
+      }
+    } catch (_) {
+      event.sender.send('stream-log', `[ERROR] 停止之前的流管道进程失败: ${_}`)
+    }
     streamPipes.delete(wcId)
   }
 
@@ -311,6 +320,8 @@ ipcMain.handle('stream-pipe-start', async (event, streamUrl, headers, options = 
   if (!ffmpegPath) {
     const msg = '未找到 ffmpeg 可执行文件。请在系统 PATH 配置或通过 options.ffmpegPath/环境变量 FFMPEG_PATH 指定完整路径。'
     try { event.sender.send('stream-log', `[ERROR] ${msg}`) } catch (_) {}
+    try { event.sender.send('stream-log', `[ERROR] 尝试的路径: ${options.ffmpegPath || '未指定'}`) } catch (_) {}
+    try { event.sender.send('stream-log', `[ERROR] 环境变量 FFMPEG_PATH: ${process.env.FFMPEG_PATH || '未设置'}`) } catch (_) {}
     return { success: false, error: msg }
   }
   const fps = options.fps || 2
@@ -406,8 +417,8 @@ ipcMain.handle('stream-pipe-start', async (event, streamUrl, headers, options = 
       }
       return `${ffmpegPath} ${out.join(' ')}`
     })()
-    event.sender.send('stream-log', `[CMD] ${printable}`)
-    event.sender.send('stream-log', `ffmpeg start: ${ffmpegPath} ${args.join(' ')}`)
+    // event.sender.send('stream-log', `[CMD] ${printable}`)
+    // event.sender.send('stream-log', `ffmpeg start: ${ffmpegPath} ${args.join(' ')}`)
   } catch (_) {}
 
   // 若 3 秒内没有任何日志，发出提示，便于定位（可能为网络/TLS/权限）
@@ -483,7 +494,7 @@ ipcMain.handle('stream-pipe-start', async (event, streamUrl, headers, options = 
   }
 
   proc.on('spawn', () => {
-    try { event.sender.send('stream-log', '[proc] spawned') } catch (_) {}
+    try { event.sender.send('stream-log', '[FFmpeg] 进程已启动') } catch (_) {}
     console.log('[proc] spawned')
   })
 
@@ -533,7 +544,7 @@ ipcMain.handle('stream-pipe-start', async (event, streamUrl, headers, options = 
     }
     
     // 调试：统计字节到达
-    try { event.sender.send('stream-log', `[stdout] +${chunk.length} bytes, buffer=${s.buffer.length}`) } catch (_) {}
+    // try { event.sender.send('stream-log', `[stdout] +${chunk.length} bytes, buffer=${s.buffer.length}`) } catch (_) {}
     
     if (dumpStream && dumpedBytes < 1024 * 1024) {
       try { dumpStream.write(chunk); dumpedBytes += chunk.length } catch (_) {}
@@ -600,7 +611,7 @@ ipcMain.handle('stream-pipe-start', async (event, streamUrl, headers, options = 
     sawAnyLog = true
     const msg = data.toString()
     try {
-      event.sender.send('stream-log', msg)
+      // event.sender.send('stream-log', msg)
       // 同时也在主进程打印，便于对比
       // console.log('[FFmpeg]', msg)
     } catch (_) {}
@@ -617,6 +628,7 @@ ipcMain.handle('stream-pipe-start', async (event, streamUrl, headers, options = 
     streamPipes.delete(wcId)
     try { event.sender.send('stream-frame-end', { reason: 'closed', code, signal }) } catch (_) {}
     try { clearTimeout(logWatchdog) } catch (_) {}
+    try { clearTimeout(dataWatchdog) } catch (_) {}
   })
 
   return { success: true, ffmpegPath, args }

@@ -260,6 +260,7 @@ function resolveFfmpegPath(preferred) {
       }
     } catch (_) {}
   }
+  
   // 1.1) 环境变量 FFMPEG_PATH
   try {
     const envPath = process.env.FFMPEG_PATH
@@ -268,24 +269,67 @@ function resolveFfmpegPath(preferred) {
       if (fs.existsSync(p)) return p
     }
   } catch (_) {}
-  // 2) 尝试 ffmpeg-static
+  
+  // 2) 打包后的ffmpeg路径（优先级最高）
+  try {
+    // 检查是否在打包后的环境中
+    if (app.isPackaged) {
+      // 打包后的路径：resources/app.asar/../ffmpeg/bin/ffmpeg.exe
+      const packagedPath = path.join(process.resourcesPath, 'ffmpeg', 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+      if (fs.existsSync(packagedPath)) {
+        console.log('[FFmpeg] 找到打包后的ffmpeg:', packagedPath)
+        return packagedPath
+      }
+      
+      // 备用路径：相对于可执行文件目录
+      const exeDir = path.dirname(process.execPath)
+      const relativePath = path.join(exeDir, 'ffmpeg', 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+      if (fs.existsSync(relativePath)) {
+        console.log('[FFmpeg] 找到相对路径ffmpeg:', relativePath)
+        return relativePath
+      }
+    } else {
+      // 开发环境：相对于项目根目录
+      const devPath = path.join(__dirname, '..', 'ffmpeg', 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+      if (fs.existsSync(devPath)) {
+        console.log('[FFmpeg] 找到开发环境ffmpeg:', devPath)
+        return devPath
+      }
+    }
+  } catch (error) {
+    console.log('[FFmpeg] 检查打包路径失败:', error.message)
+  }
+  
+  // 3) 尝试 ffmpeg-static
   try {
     // 动态 require，未安装则忽略
     // eslint-disable-next-line global-require, import/no-extraneous-dependencies
     const ffstatic = require('ffmpeg-static')
-    if (ffstatic && fs.existsSync(ffstatic)) return ffstatic
+    if (ffstatic && fs.existsSync(ffstatic)) {
+      console.log('[FFmpeg] 找到ffmpeg-static:', ffstatic)
+      return ffstatic
+    }
   } catch (_) {}
-  // 3) 回退到 PATH 中的 ffmpeg
+  
+  // 4) 回退到 PATH 中的 ffmpeg
   try {
     const cp = require('child_process')
     if (process.platform === 'win32') {
       const out = cp.execSync('where ffmpeg', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().split(/\r?\n/).find(Boolean)
-      if (out && fs.existsSync(out.trim())) return out.trim()
+      if (out && fs.existsSync(out.trim())) {
+        console.log('[FFmpeg] 找到系统PATH中的ffmpeg:', out.trim())
+        return out.trim()
+      }
     } else {
       const out = cp.execSync('which ffmpeg', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
-      if (out && fs.existsSync(out)) return out
+      if (out && fs.existsSync(out)) {
+        console.log('[FFmpeg] 找到系统PATH中的ffmpeg:', out)
+        return out
+      }
     }
   } catch (_) {}
+  
+  console.log('[FFmpeg] 未找到任何可用的ffmpeg路径')
   return null
 }
 
@@ -695,6 +739,36 @@ ipcMain.handle('get-device-id', async () => {
   } catch (error) {
     console.error('获取设备ID失败:', error)
     throw error
+  }
+})
+
+// 测试ffmpeg路径解析
+ipcMain.handle('test-ffmpeg-path', async () => {
+  try {
+    const ffmpegPath = resolveFfmpegPath()
+    const isPackaged = app.isPackaged
+    const resourcesPath = process.resourcesPath
+    const execPath = process.execPath
+    const cwd = process.cwd()
+    
+    console.log('[FFmpeg测试] 打包状态:', isPackaged)
+    console.log('[FFmpeg测试] 资源路径:', resourcesPath)
+    console.log('[FFmpeg测试] 可执行文件路径:', execPath)
+    console.log('[FFmpeg测试] 当前工作目录:', cwd)
+    console.log('[FFmpeg测试] 解析到的ffmpeg路径:', ffmpegPath)
+    
+    return {
+      success: !!ffmpegPath,
+      ffmpegPath,
+      isPackaged,
+      resourcesPath,
+      execPath,
+      cwd,
+      exists: ffmpegPath ? require('fs').existsSync(ffmpegPath) : false
+    }
+  } catch (error) {
+    console.error('测试ffmpeg路径失败:', error)
+    return { success: false, error: error.message }
   }
 })
 
@@ -1257,7 +1331,13 @@ ipcMain.handle('capture-stream-frame', async (event, streamUrl, headers) => {
     const { spawn } = require('child_process')
     const path = require('path')
     const fs = require('fs')
-    const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
+    
+    // 使用统一的ffmpeg路径解析函数
+    const ffmpegPath = resolveFfmpegPath()
+    if (!ffmpegPath) {
+      console.error('未找到ffmpeg可执行文件')
+      return { success: false, error: '未找到ffmpeg可执行文件' }
+    }
     
     console.log('FFmpeg路径:', ffmpegPath)
     
